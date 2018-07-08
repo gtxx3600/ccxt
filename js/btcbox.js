@@ -12,11 +12,15 @@ module.exports = class btcbox extends Exchange {
         return this.deepExtend (super.describe (), {
             'id': 'btcbox',
             'name': 'BtcBox',
-            'countries': 'JP',
+            'countries': [ 'JP' ],
             'rateLimit': 1000,
             'version': 'v1',
             'has': {
                 'CORS': false,
+                'fetchOrder': true,
+                'fetchOrders': true,
+                'fetchOpenOrders': true,
+                'fetchTickers': true,
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/1294454/31275803-4df755a8-aaa1-11e7-9abb-11ec2fad9f2d.jpg',
@@ -239,6 +243,7 @@ module.exports = class btcbox extends Exchange {
             'id': id,
             'timestamp': timestamp,
             'datetime': this.iso8601 (timestamp),
+            'lastTradeTimestamp': undefined,
             'amount': amount,
             'remaining': remaining,
             'filled': filled,

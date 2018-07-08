@@ -13,7 +13,7 @@ class vbtc extends foxbit {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'vbtc',
             'name' => 'VBTC',
-            'countries' => 'VN',
+            'countries' => array ( 'VN' ),
             'has' => array (
                 'CORS' => false,
             ),
@@ -25,6 +25,9 @@ class vbtc extends foxbit {
                 ),
                 'www' => 'https://vbtc.exchange',
                 'doc' => 'https://blinktrade.com/docs',
+            ),
+            'options' => array (
+                'brokerId' => '3', // https://blinktrade.com/docs/#brokers
             ),
         ));
     }

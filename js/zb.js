@@ -12,7 +12,7 @@ module.exports = class zb extends Exchange {
         return this.deepExtend (super.describe (), {
             'id': 'zb',
             'name': 'ZB',
-            'countries': 'CN',
+            'countries': [ 'CN' ],
             'rateLimit': 1000,
             'version': 'v1',
             'has': {
@@ -71,7 +71,7 @@ module.exports = class zb extends Exchange {
                     'public': 'http://api.zb.com/data', // no https for public API
                     'private': 'https://trade.zb.com/api',
                 },
-                'www': 'https://trade.zb.com/api',
+                'www': 'https://www.zb.com',
                 'doc': 'https://www.zb.com/i/developer',
                 'fees': 'https://www.zb.com/i/rate',
             },
@@ -153,6 +153,9 @@ module.exports = class zb extends Exchange {
                     'maker': 0.2 / 100,
                     'taker': 0.2 / 100,
                 },
+            },
+            'commonCurrencies': {
+                'ENT': 'ENTCash',
             },
         });
     }
@@ -258,16 +261,16 @@ module.exports = class zb extends Exchange {
         let response = await this.publicGetTicker (this.extend (request, params));
         let ticker = response['ticker'];
         let timestamp = this.milliseconds ();
-        let last = parseFloat (ticker['last']);
+        let last = this.safeFloat (ticker, 'last');
         return {
             'symbol': symbol,
             'timestamp': timestamp,
             'datetime': this.iso8601 (timestamp),
-            'high': parseFloat (ticker['high']),
-            'low': parseFloat (ticker['low']),
-            'bid': parseFloat (ticker['buy']),
+            'high': this.safeFloat (ticker, 'high'),
+            'low': this.safeFloat (ticker, 'low'),
+            'bid': this.safeFloat (ticker, 'buy'),
             'bidVolume': undefined,
-            'ask': parseFloat (ticker['sell']),
+            'ask': this.safeFloat (ticker, 'sell'),
             'askVolume': undefined,
             'vwap': undefined,
             'open': undefined,
@@ -277,7 +280,7 @@ module.exports = class zb extends Exchange {
             'change': undefined,
             'percentage': undefined,
             'average': undefined,
-            'baseVolume': parseFloat (ticker['vol']),
+            'baseVolume': this.safeFloat (ticker, 'vol'),
             'quoteVolume': undefined,
             'info': ticker,
         };
@@ -310,8 +313,8 @@ module.exports = class zb extends Exchange {
             'symbol': market['symbol'],
             'type': undefined,
             'side': side,
-            'price': parseFloat (trade['price']),
-            'amount': parseFloat (trade['amount']),
+            'price': this.safeFloat (trade, 'price'),
+            'amount': this.safeFloat (trade, 'amount'),
         };
     }
 
@@ -362,11 +365,11 @@ module.exports = class zb extends Exchange {
         };
         order = this.extend (order, params);
         let response = await this.privateGetGetOrder (order);
-        return this.parseOrder (response, undefined, true);
+        return this.parseOrder (response, undefined);
     }
 
     async fetchOrders (symbol = undefined, since = undefined, limit = 50, params = {}) {
-        if (!symbol)
+        if (typeof symbol === 'undefined')
             throw new ExchangeError (this.id + 'fetchOrders requires a symbol parameter');
         await this.loadMarkets ();
         let market = this.market (symbol);
@@ -392,7 +395,7 @@ module.exports = class zb extends Exchange {
     }
 
     async fetchOpenOrders (symbol = undefined, since = undefined, limit = 10, params = {}) {
-        if (!symbol)
+        if (typeof symbol === 'undefined')
             throw new ExchangeError (this.id + 'fetchOpenOrders requires a symbol parameter');
         await this.loadMarkets ();
         let market = this.market (symbol);
@@ -418,7 +421,7 @@ module.exports = class zb extends Exchange {
     }
 
     parseOrder (order, market = undefined) {
-        let side = order['type'] === 1 ? 'buy' : 'sell';
+        let side = (order['type'] === 1) ? 'buy' : 'sell';
         let type = 'limit'; // market order is not availalbe in ZB
         let timestamp = undefined;
         let createDateField = this.getCreateDateField ();
@@ -432,7 +435,7 @@ module.exports = class zb extends Exchange {
         if (market)
             symbol = market['symbol'];
         let price = order['price'];
-        let average = order['trade_price'];
+        let average = undefined;
         let filled = order['trade_amount'];
         let amount = order['total_amount'];
         let remaining = amount - filled;
@@ -445,6 +448,7 @@ module.exports = class zb extends Exchange {
             'id': order['id'],
             'timestamp': timestamp,
             'datetime': this.iso8601 (timestamp),
+            'lastTradeTimestamp': undefined,
             'symbol': symbol,
             'type': type,
             'side': side,
@@ -509,14 +513,26 @@ module.exports = class zb extends Exchange {
             return; // fallback to default error handler
         if (body[0] === '{') {
             let response = JSON.parse (body);
+            let feedback = this.id + ' ' + this.json (response);
             if ('code' in response) {
                 let code = this.safeString (response, 'code');
-                let message = this.id + ' ' + this.json (response);
                 if (code in this.exceptions) {
                     let ExceptionClass = this.exceptions[code];
-                    throw new ExceptionClass (message);
+                    throw new ExceptionClass (feedback);
                 } else if (code !== '1000') {
-                    throw new ExchangeError (message);
+                    throw new ExchangeError (feedback);
+                }
+            }
+            // special case for {"result":false,"message":"服务端忙碌"} (a "Busy Server" reply)
+            let result = this.safeValue (response, 'result');
+            if (typeof result !== 'undefined') {
+                if (!result) {
+                    let message = this.safeString (response, 'message');
+                    if (message === '服务端忙碌') {
+                        throw new ExchangeNotAvailable (feedback);
+                    } else {
+                        throw new ExchangeError (feedback);
+                    }
                 }
             }
         }

@@ -13,7 +13,7 @@ class acx extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'acx',
             'name' => 'ACX',
-            'countries' => 'AU',
+            'countries' => array ( 'AU' ),
             'rateLimit' => 1000,
             'version' => 'v2',
             'has' => array (
@@ -21,6 +21,7 @@ class acx extends Exchange {
                 'fetchTickers' => true,
                 'fetchOHLCV' => true,
                 'withdraw' => true,
+                'fetchOrder' => true,
             ),
             'timeframes' => array (
                 '1m' => '1',
@@ -159,26 +160,26 @@ class acx extends Exchange {
         $symbol = null;
         if ($market)
             $symbol = $market['symbol'];
-        $last = $this->safe_float($ticker, 'last', null);
+        $last = $this->safe_float($ticker, 'last');
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
-            'high' => $this->safe_float($ticker, 'high', null),
-            'low' => $this->safe_float($ticker, 'low', null),
-            'bid' => $this->safe_float($ticker, 'buy', null),
+            'high' => $this->safe_float($ticker, 'high'),
+            'low' => $this->safe_float($ticker, 'low'),
+            'bid' => $this->safe_float($ticker, 'buy'),
             'bidVolume' => null,
-            'ask' => $this->safe_float($ticker, 'sell', null),
+            'ask' => $this->safe_float($ticker, 'sell'),
             'askVolume' => null,
             'vwap' => null,
-            'open' => $this->safe_float($ticker, 'open', null),
+            'open' => $this->safe_float($ticker, 'open'),
             'close' => $last,
             'last' => $last,
             'previousClose' => null,
             'change' => null,
             'percentage' => null,
             'average' => null,
-            'baseVolume' => $this->safe_float($ticker, 'vol', null),
+            'baseVolume' => $this->safe_float($ticker, 'vol'),
             'quoteVolume' => null,
             'info' => $ticker,
         );
@@ -259,7 +260,7 @@ class acx extends Exchange {
     public function fetch_ohlcv ($symbol, $timeframe = '1m', $since = null, $limit = null, $params = array ()) {
         $this->load_markets();
         $market = $this->market ($symbol);
-        if (!$limit)
+        if ($limit === null)
             $limit = 500; // default is 30
         $request = array (
             'market' => $market['id'],
@@ -274,7 +275,7 @@ class acx extends Exchange {
 
     public function parse_order ($order, $market = null) {
         $symbol = null;
-        if ($market) {
+        if ($market !== null) {
             $symbol = $market['symbol'];
         } else {
             $marketId = $order['market'];
@@ -294,18 +295,27 @@ class acx extends Exchange {
             'id' => (string) $order['id'],
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
+            'lastTradeTimestamp' => null,
             'status' => $status,
             'symbol' => $symbol,
             'type' => $order['ord_type'],
             'side' => $order['side'],
-            'price' => floatval ($order['price']),
-            'amount' => floatval ($order['volume']),
-            'filled' => floatval ($order['executed_volume']),
-            'remaining' => floatval ($order['remaining_volume']),
+            'price' => $this->safe_float($order, 'price'),
+            'amount' => $this->safe_float($order, 'volume'),
+            'filled' => $this->safe_float($order, 'executed_volume'),
+            'remaining' => $this->safe_float($order, 'remaining_volume'),
             'trades' => null,
             'fee' => null,
             'info' => $order,
         );
+    }
+
+    public function fetch_order ($id, $symbol = null, $params = array ()) {
+        $this->load_markets();
+        $response = $this->privateGetOrder (array_merge (array (
+            'id' => intval ($id),
+        ), $params));
+        return $this->parse_order($response);
     }
 
     public function create_order ($symbol, $type, $side, $amount, $price = null, $params = array ()) {
@@ -389,8 +399,8 @@ class acx extends Exchange {
                 'tonce' => $nonce,
             ), $params));
             $auth = $method . '|' . $request . '|' . $query;
-            $signature = $this->hmac ($this->encode ($auth), $this->encode ($this->secret));
-            $suffix = $query . '&$signature=' . $signature;
+            $signed = $this->hmac ($this->encode ($auth), $this->encode ($this->secret));
+            $suffix = $query . '&signature=' . $signed;
             if ($method === 'GET') {
                 $url .= '?' . $suffix;
             } else {

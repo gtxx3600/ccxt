@@ -13,7 +13,7 @@ class bitfinex extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'bitfinex',
             'name' => 'Bitfinex',
-            'countries' => 'VG',
+            'countries' => array ( 'VG' ),
             'version' => 'v1',
             'rateLimit' => 1500,
             // new metainfo interface
@@ -108,6 +108,7 @@ class bitfinex extends Exchange {
                         'orders',
                         'orders/hist',
                         'position/claim',
+                        'position/close',
                         'positions',
                         'summary',
                         'taken_funds',
@@ -156,81 +157,113 @@ class bitfinex extends Exchange {
                 'funding' => array (
                     'tierBased' => false, // true for tier-based/progressive
                     'percentage' => false, // fixed commission
+                    // Actually deposit fees are free for larger deposits (> $1000 USD equivalent)
+                    // these values below are deprecated, we should not hardcode fees and limits anymore
+                    // to be reimplemented with bitfinex funding fees from their API or web endpoints
                     'deposit' => array (
-                        'BTC' => 0.0005,
+                        'BTC' => 0.0004,
                         'IOTA' => 0.5,
-                        'ETH' => 0.01,
-                        'BCH' => 0.01,
-                        'LTC' => 0.1,
-                        'EOS' => 0.1,
-                        'XMR' => 0.04,
-                        'SAN' => 0.1,
-                        'DASH' => 0.01,
-                        'ETC' => 0.01,
-                        'XRP' => 0.02,
-                        'YYW' => 0.1,
-                        'NEO' => 0,
-                        'ZEC' => 0.1,
-                        'BTG' => 0,
-                        'OMG' => 0.1,
-                        'DATA' => 1,
-                        'QASH' => 1,
-                        'ETP' => 0.01,
-                        'QTUM' => 0.01,
-                        'EDO' => 0.5,
-                        'AVT' => 0.5,
-                        'USDT' => 0,
-                    ),
-                    'withdraw' => array (
-                        'BTC' => 0.0008,
-                        'IOTA' => 0.5,
-                        'ETH' => 0.01,
-                        'ETC' => 0.01,
+                        'ETH' => 0.0027,
                         'BCH' => 0.0001,
                         'LTC' => 0.001,
-                        'EOS' => 0.8609,
+                        'EOS' => 0.24279,
                         'XMR' => 0.04,
-                        'SAN' => 3.2779,
+                        'SAN' => 0.99269,
                         'DASH' => 0.01,
+                        'ETC' => 0.01,
                         'XRP' => 0.02,
-                        'YYW' => 40.543,
+                        'YYW' => 16.915,
                         'NEO' => 0,
                         'ZEC' => 0.001,
                         'BTG' => 0,
-                        'OMG' => 0.5897,
-                        'DATA' => 52.405,
-                        'FUN' => 90.402,
-                        'GNT' => 15.435,
-                        'MNA' => 76.821,
-                        'BAT' => 17.223,
-                        'SPK' => 24.708,
-                        'QASH' => 6.1629,
+                        'OMG' => 0.14026,
+                        'DATA' => 20.773,
+                        'QASH' => 1.9858,
                         'ETP' => 0.01,
                         'QTUM' => 0.01,
-                        'EDO' => 2.5238,
-                        'AVT' => 3.2495,
-                        'USDT' => 20.0,
-                        'ZRX' => 5.6442,
-                        'TNB' => 87.511,
-                        'SNT' => 32.736,
+                        'EDO' => 0.95001,
+                        'AVT' => 1.3045,
+                        'USDT' => 0,
+                        'TRX' => 28.184,
+                        'ZRX' => 1.9947,
+                        'RCN' => 10.793,
+                        'TNB' => 31.915,
+                        'SNT' => 14.976,
+                        'RLC' => 1.414,
+                        'GNT' => 5.8952,
+                        'SPK' => 10.893,
+                        'REP' => 0.041168,
+                        'BAT' => 6.1546,
+                        'ELF' => 1.8753,
+                        'FUN' => 32.336,
+                        'SNG' => 18.622,
+                        'AID' => 8.08,
+                        'MNA' => 16.617,
+                        'NEC' => 1.6504,
+                    ),
+                    'withdraw' => array (
+                        'BTC' => 0.0004,
+                        'IOTA' => 0.5,
+                        'ETH' => 0.0027,
+                        'BCH' => 0.0001,
+                        'LTC' => 0.001,
+                        'EOS' => 0.24279,
+                        'XMR' => 0.04,
+                        'SAN' => 0.99269,
+                        'DASH' => 0.01,
+                        'ETC' => 0.01,
+                        'XRP' => 0.02,
+                        'YYW' => 16.915,
+                        'NEO' => 0,
+                        'ZEC' => 0.001,
+                        'BTG' => 0,
+                        'OMG' => 0.14026,
+                        'DATA' => 20.773,
+                        'QASH' => 1.9858,
+                        'ETP' => 0.01,
+                        'QTUM' => 0.01,
+                        'EDO' => 0.95001,
+                        'AVT' => 1.3045,
+                        'USDT' => 20,
+                        'TRX' => 28.184,
+                        'ZRX' => 1.9947,
+                        'RCN' => 10.793,
+                        'TNB' => 31.915,
+                        'SNT' => 14.976,
+                        'RLC' => 1.414,
+                        'GNT' => 5.8952,
+                        'SPK' => 10.893,
+                        'REP' => 0.041168,
+                        'BAT' => 6.1546,
+                        'ELF' => 1.8753,
+                        'FUN' => 32.336,
+                        'SNG' => 18.622,
+                        'AID' => 8.08,
+                        'MNA' => 16.617,
+                        'NEC' => 1.6504,
                     ),
                 ),
             ),
             'commonCurrencies' => array (
                 'BCC' => 'CST_BCC',
                 'BCU' => 'CST_BCU',
+                'CTX' => 'CTXC',
                 'DAT' => 'DATA',
                 'DSH' => 'DASH', // Bitfinex names Dash as DSH, instead of DASH
+                'IOS' => 'IOST',
                 'IOT' => 'IOTA',
                 'MNA' => 'MANA',
                 'QSH' => 'QASH',
                 'QTM' => 'QTUM',
                 'SNG' => 'SNGLS',
                 'SPK' => 'SPANK',
+                'STJ' => 'STORJ',
                 'YYW' => 'YOYOW',
+                'USD' => 'USDT',
             ),
             'exceptions' => array (
                 'exact' => array (
+                    'temporarily_unavailable' => '\\ccxt\\ExchangeNotAvailable', // Sorry, the service is temporarily unavailable. See https://www.bitfinex.com/ for more info.
                     'Order could not be cancelled.' => '\\ccxt\\OrderNotFound', // non-existent order
                     'No such order found.' => '\\ccxt\\OrderNotFound', // ?
                     'Order price must be positive.' => '\\ccxt\\InvalidOrder', // on price <= 0
@@ -240,14 +273,85 @@ class bitfinex extends Exchange {
                     'Key amount should be a decimal number, e.g. "123.456"' => '\\ccxt\\InvalidOrder', // on isNaN (amount)
                     'ERR_RATE_LIMIT' => '\\ccxt\\DDoSProtection',
                     'Nonce is too small.' => '\\ccxt\\InvalidNonce',
+                    'No summary found.' => '\\ccxt\\ExchangeError', // fetchTradingFees (summary) endpoint can give this vague error message
+                    'Cannot evaluate your available balance, please try again' => '\\ccxt\\ExchangeNotAvailable',
                 ),
                 'broad' => array (
                     'Invalid order => not enough exchange balance for ' => '\\ccxt\\InsufficientFunds', // when buying cost is greater than the available quote currency
                     'Invalid order => minimum size for ' => '\\ccxt\\InvalidOrder', // when amount below limits.amount.min
                     'Invalid order' => '\\ccxt\\InvalidOrder', // ?
+                    'The available balance is only' => '\\ccxt\\InsufficientFunds', // array ("status":"error","message":"Cannot withdraw 1.0027 ETH from your exchange wallet. The available balance is only 0.0 ETH. If you have limit orders, open positions, unused or active margin funding, this will decrease your available balance. To increase it, you can cancel limit orders or reduce/close your positions.","withdrawal_id":0,"fees":"0.0027")
                 ),
             ),
             'precisionMode' => SIGNIFICANT_DIGITS,
+            'options' => array (
+                'currencyNames' => array (
+                    'AGI' => 'agi',
+                    'AID' => 'aid',
+                    'AIO' => 'aio',
+                    'ANT' => 'ant',
+                    'AVT' => 'aventus', // #1811
+                    'BAT' => 'bat',
+                    'BCH' => 'bcash', // undocumented
+                    'BCI' => 'bci',
+                    'BFT' => 'bft',
+                    'BTC' => 'bitcoin',
+                    'BTG' => 'bgold',
+                    'CFI' => 'cfi',
+                    'DAI' => 'dai',
+                    'DADI' => 'dad',
+                    'DASH' => 'dash',
+                    'DATA' => 'datacoin',
+                    'DTH' => 'dth',
+                    'EDO' => 'eidoo', // #1811
+                    'ELF' => 'elf',
+                    'EOS' => 'eos',
+                    'ETC' => 'ethereumc',
+                    'ETH' => 'ethereum',
+                    'ETP' => 'metaverse',
+                    'FUN' => 'fun',
+                    'GNT' => 'golem',
+                    'IOST' => 'ios',
+                    'IOTA' => 'iota',
+                    'LRC' => 'lrc',
+                    'LTC' => 'litecoin',
+                    'LYM' => 'lym',
+                    'MANA' => 'mna',
+                    'MIT' => 'mit',
+                    'MKR' => 'mkr',
+                    'MTN' => 'mtn',
+                    'NEO' => 'neo',
+                    'ODE' => 'ode',
+                    'OMG' => 'omisego',
+                    'OMNI' => 'mastercoin',
+                    'QASH' => 'qash',
+                    'QTUM' => 'qtum', // #1811
+                    'RCN' => 'rcn',
+                    'RDN' => 'rdn',
+                    'REP' => 'rep',
+                    'REQ' => 'req',
+                    'RLC' => 'rlc',
+                    'SAN' => 'santiment',
+                    'SNGLS' => 'sng',
+                    'SNT' => 'status',
+                    'SPANK' => 'spk',
+                    'STORJ' => 'stj',
+                    'TNB' => 'tnb',
+                    'TRX' => 'trx',
+                    'USD' => 'wire',
+                    'UTK' => 'utk',
+                    'USDT' => 'tetheruso', // undocumented
+                    'VEE' => 'vee',
+                    'WAX' => 'wax',
+                    'XLM' => 'xlm',
+                    'XMR' => 'monero',
+                    'XRP' => 'ripple',
+                    'XVG' => 'xvg',
+                    'YOYOW' => 'yoyow',
+                    'ZEC' => 'zcash',
+                    'ZRX' => 'zrx',
+                ),
+            ),
         ));
     }
 
@@ -300,8 +404,8 @@ class bitfinex extends Exchange {
             );
             $limits = array (
                 'amount' => array (
-                    'min' => floatval ($market['minimum_order_size']),
-                    'max' => floatval ($market['maximum_order_size']),
+                    'min' => $this->safe_float($market, 'minimum_order_size'),
+                    'max' => $this->safe_float($market, 'maximum_order_size'),
                 ),
                 'price' => array (
                     'min' => pow (10, -$precision['price']),
@@ -347,13 +451,18 @@ class bitfinex extends Exchange {
     public function calculate_fee ($symbol, $type, $side, $amount, $price, $takerOrMaker = 'taker', $params = array ()) {
         $market = $this->markets[$symbol];
         $rate = $market[$takerOrMaker];
-        $cost = $amount * $price;
+        $cost = $amount * $rate;
         $key = 'quote';
+        if ($side === 'sell') {
+            $cost *= $price;
+        } else {
+            $key = 'base';
+        }
         return array (
             'type' => $takerOrMaker,
             'currency' => $market[$key],
             'rate' => $rate,
-            'cost' => floatval ($this->fee_to_precision($market[$key], $rate * $cost)),
+            'cost' => floatval ($this->fee_to_precision($market[$key], $cost)),
         );
     }
 
@@ -414,7 +523,7 @@ class bitfinex extends Exchange {
     }
 
     public function parse_ticker ($ticker, $market = null) {
-        $timestamp = floatval ($ticker['timestamp']) * 1000;
+        $timestamp = $this->safe_float($ticker, 'timestamp') * 1000;
         $symbol = null;
         if ($market !== null) {
             $symbol = $market['symbol'];
@@ -432,16 +541,16 @@ class bitfinex extends Exchange {
                 $symbol = $base . '/' . $quote;
             }
         }
-        $last = floatval ($ticker['last_price']);
+        $last = $this->safe_float($ticker, 'last_price');
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
-            'high' => floatval ($ticker['high']),
-            'low' => floatval ($ticker['low']),
-            'bid' => floatval ($ticker['bid']),
+            'high' => $this->safe_float($ticker, 'high'),
+            'low' => $this->safe_float($ticker, 'low'),
+            'bid' => $this->safe_float($ticker, 'bid'),
             'bidVolume' => null,
-            'ask' => floatval ($ticker['ask']),
+            'ask' => $this->safe_float($ticker, 'ask'),
             'askVolume' => null,
             'vwap' => null,
             'open' => null,
@@ -450,8 +559,8 @@ class bitfinex extends Exchange {
             'previousClose' => null,
             'change' => null,
             'percentage' => null,
-            'average' => floatval ($ticker['mid']),
-            'baseVolume' => floatval ($ticker['volume']),
+            'average' => $this->safe_float($ticker, 'mid'),
+            'baseVolume' => $this->safe_float($ticker, 'volume'),
             'quoteVolume' => null,
             'info' => $ticker,
         );
@@ -461,8 +570,8 @@ class bitfinex extends Exchange {
         $timestamp = intval (floatval ($trade['timestamp'])) * 1000;
         $side = strtolower ($trade['type']);
         $orderId = $this->safe_string($trade, 'order_id');
-        $price = floatval ($trade['price']);
-        $amount = floatval ($trade['amount']);
+        $price = $this->safe_float($trade, 'price');
+        $amount = $this->safe_float($trade, 'amount');
         $cost = $price * $amount;
         $fee = null;
         if (is_array ($trade) && array_key_exists ('fee_amount', $trade)) {
@@ -521,10 +630,10 @@ class bitfinex extends Exchange {
         $orderType = $type;
         if (($type === 'limit') || ($type === 'market'))
             $orderType = 'exchange ' . $type;
-        // $amount = $this->amount_to_precision($symbol, $amount);
+        $amount = $this->amount_to_precision($symbol, $amount);
         $order = array (
             'symbol' => $this->market_id($symbol),
-            'amount' => (string) $amount,
+            'amount' => $amount,
             'side' => $side,
             'type' => $orderType,
             'ocoorder' => false,
@@ -534,8 +643,7 @@ class bitfinex extends Exchange {
         if ($type === 'market') {
             $order['price'] = (string) $this->nonce ();
         } else {
-            // $price = $this->price_to_precision($symbol, $price);
-            $order['price'] = (string) $price;
+            $order['price'] = $this->price_to_precision($symbol, $price);
         }
         $result = $this->privatePostOrderNew (array_merge ($order, $params));
         return $this->parse_order($result);
@@ -559,13 +667,13 @@ class bitfinex extends Exchange {
             $status = 'closed';
         }
         $symbol = null;
-        if (!$market) {
+        if ($market === null) {
             $exchange = strtoupper ($order['symbol']);
             if (is_array ($this->markets_by_id) && array_key_exists ($exchange, $this->markets_by_id)) {
                 $market = $this->markets_by_id[$exchange];
             }
         }
-        if ($market)
+        if ($market !== null)
             $symbol = $market['symbol'];
         $orderType = $order['type'];
         $exchange = mb_strpos ($orderType, 'exchange ') !== false;
@@ -579,6 +687,7 @@ class bitfinex extends Exchange {
             'id' => (string) $order['id'],
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
+            'lastTradeTimestamp' => null,
             'symbol' => $symbol,
             'type' => $orderType,
             'side' => $side,
@@ -595,9 +704,12 @@ class bitfinex extends Exchange {
 
     public function fetch_open_orders ($symbol = null, $since = null, $limit = null, $params = array ()) {
         $this->load_markets();
+        if ($symbol !== null)
+            if (!(is_array ($this->markets) && array_key_exists ($symbol, $this->markets)))
+                throw new ExchangeError ($this->id . ' has no $symbol ' . $symbol);
         $response = $this->privatePostOrders ($params);
         $orders = $this->parse_orders($response, null, $since, $limit);
-        if ($symbol)
+        if ($symbol !== null)
             $orders = $this->filter_by($orders, 'symbol', $symbol);
         return $orders;
     }
@@ -634,10 +746,10 @@ class bitfinex extends Exchange {
         ];
     }
 
-    public function fetch_ohlcv ($symbol, $timeframe = '1m', $since = null, $limit = 100, $params = array ()) {
+    public function fetch_ohlcv ($symbol, $timeframe = '1m', $since = null, $limit = null, $params = array ()) {
         $this->load_markets();
-        if ($since === null)
-            $since = $this->milliseconds () - $this->parse_timeframe($timeframe) * $limit * 1000;
+        if ($limit === null)
+            $limit = 100;
         $market = $this->market ($symbol);
         $v2id = 't' . $market['id'];
         $request = array (
@@ -645,34 +757,16 @@ class bitfinex extends Exchange {
             'timeframe' => $this->timeframes[$timeframe],
             'sort' => 1,
             'limit' => $limit,
-            'start' => $since,
         );
+        if ($since !== null)
+            $request['start'] = $since;
         $response = $this->v2GetCandlesTradeTimeframeSymbolHist (array_merge ($request, $params));
         return $this->parse_ohlcvs($response, $market, $timeframe, $since, $limit);
     }
 
     public function get_currency_name ($currency) {
-        $names = array (
-            'BTC' => 'bitcoin',
-            'LTC' => 'litecoin',
-            'ETH' => 'ethereum',
-            'ETC' => 'ethereumc',
-            'OMNI' => 'mastercoin',
-            'ZEC' => 'zcash',
-            'XMR' => 'monero',
-            'USD' => 'wire',
-            'DASH' => 'dash',
-            'XRP' => 'ripple',
-            'EOS' => 'eos',
-            'BCH' => 'bcash', // undocumented
-            'USDT' => 'tetheruso', // undocumented
-            'NEO' => 'neo', // #1811
-            'AVT' => 'aventus', // #1811
-            'QTUM' => 'qtum', // #1811
-            'EDO' => 'eidoo', // #1811
-        );
-        if (is_array ($names) && array_key_exists ($currency, $names))
-            return $names[$currency];
+        if (is_array ($this->options['currencyNames']) && array_key_exists ($currency, $this->options['currencyNames']))
+            return $this->options['currencyNames'][$currency];
         throw new NotSupported ($this->id . ' ' . $currency . ' not supported for withdrawal');
     }
 
@@ -685,7 +779,6 @@ class bitfinex extends Exchange {
         return array (
             'currency' => $currency,
             'address' => $address,
-            'status' => 'ok',
             'info' => $response['info'],
         );
     }
@@ -709,7 +802,6 @@ class bitfinex extends Exchange {
             'currency' => $currency,
             'address' => $address,
             'tag' => $tag,
-            'status' => 'ok',
             'info' => $response,
         );
     }
@@ -727,9 +819,19 @@ class bitfinex extends Exchange {
             $request['payment_id'] = $tag;
         $responses = $this->privatePostWithdraw (array_merge ($request, $params));
         $response = $responses[0];
+        $id = $response['withdrawal_id'];
+        $message = $response['message'];
+        $errorMessage = $this->find_broadly_matched_key ($this->exceptions['broad'], $message);
+        if ($id === 0) {
+            if ($errorMessage !== null) {
+                $ExceptionClass = $this->exceptions['broad'][$errorMessage];
+                throw new $ExceptionClass ($this->id . ' ' . $message);
+            }
+            throw new ExchangeError ($this->id . ' withdraw returned an $id of zero => ' . $this->json ($response));
+        }
         return array (
             'info' => $response,
-            'id' => $response['withdrawal_id'],
+            'id' => $id,
         );
     }
 

@@ -29,7 +29,7 @@ class zb (Exchange):
         return self.deep_extend(super(zb, self).describe(), {
             'id': 'zb',
             'name': 'ZB',
-            'countries': 'CN',
+            'countries': ['CN'],
             'rateLimit': 1000,
             'version': 'v1',
             'has': {
@@ -88,7 +88,7 @@ class zb (Exchange):
                     'public': 'http://api.zb.com/data',  # no https for public API
                     'private': 'https://trade.zb.com/api',
                 },
-                'www': 'https://trade.zb.com/api',
+                'www': 'https://www.zb.com',
                 'doc': 'https://www.zb.com/i/developer',
                 'fees': 'https://www.zb.com/i/rate',
             },
@@ -170,6 +170,9 @@ class zb (Exchange):
                     'maker': 0.2 / 100,
                     'taker': 0.2 / 100,
                 },
+            },
+            'commonCurrencies': {
+                'ENT': 'ENTCash',
             },
         })
 
@@ -268,16 +271,16 @@ class zb (Exchange):
         response = self.publicGetTicker(self.extend(request, params))
         ticker = response['ticker']
         timestamp = self.milliseconds()
-        last = float(ticker['last'])
+        last = self.safe_float(ticker, 'last')
         return {
             'symbol': symbol,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
-            'high': float(ticker['high']),
-            'low': float(ticker['low']),
-            'bid': float(ticker['buy']),
+            'high': self.safe_float(ticker, 'high'),
+            'low': self.safe_float(ticker, 'low'),
+            'bid': self.safe_float(ticker, 'buy'),
             'bidVolume': None,
-            'ask': float(ticker['sell']),
+            'ask': self.safe_float(ticker, 'sell'),
             'askVolume': None,
             'vwap': None,
             'open': None,
@@ -287,7 +290,7 @@ class zb (Exchange):
             'change': None,
             'percentage': None,
             'average': None,
-            'baseVolume': float(ticker['vol']),
+            'baseVolume': self.safe_float(ticker, 'vol'),
             'quoteVolume': None,
             'info': ticker,
         }
@@ -318,8 +321,8 @@ class zb (Exchange):
             'symbol': market['symbol'],
             'type': None,
             'side': side,
-            'price': float(trade['price']),
-            'amount': float(trade['amount']),
+            'price': self.safe_float(trade, 'price'),
+            'amount': self.safe_float(trade, 'amount'),
         }
 
     def fetch_trades(self, symbol, since=None, limit=None, params={}):
@@ -366,10 +369,10 @@ class zb (Exchange):
         }
         order = self.extend(order, params)
         response = self.privateGetGetOrder(order)
-        return self.parse_order(response, None, True)
+        return self.parse_order(response, None)
 
     def fetch_orders(self, symbol=None, since=None, limit=50, params={}):
-        if not symbol:
+        if symbol is None:
             raise ExchangeError(self.id + 'fetchOrders requires a symbol parameter')
         self.load_markets()
         market = self.market(symbol)
@@ -392,7 +395,7 @@ class zb (Exchange):
         return self.parse_orders(response, market, since, limit)
 
     def fetch_open_orders(self, symbol=None, since=None, limit=10, params={}):
-        if not symbol:
+        if symbol is None:
             raise ExchangeError(self.id + 'fetchOpenOrders requires a symbol parameter')
         self.load_markets()
         market = self.market(symbol)
@@ -415,7 +418,7 @@ class zb (Exchange):
         return self.parse_orders(response, market, since, limit)
 
     def parse_order(self, order, market=None):
-        side = order['type'] == 'buy' if 1 else 'sell'
+        side = 'buy' if (order['type'] == 1) else 'sell'
         type = 'limit'  # market order is not availalbe in ZB
         timestamp = None
         createDateField = self.get_create_date_field()
@@ -428,7 +431,7 @@ class zb (Exchange):
         if market:
             symbol = market['symbol']
         price = order['price']
-        average = order['trade_price']
+        average = None
         filled = order['trade_amount']
         amount = order['total_amount']
         remaining = amount - filled
@@ -441,6 +444,7 @@ class zb (Exchange):
             'id': order['id'],
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
+            'lastTradeTimestamp': None,
             'symbol': symbol,
             'type': type,
             'side': side,
@@ -499,11 +503,20 @@ class zb (Exchange):
             return  # fallback to default error handler
         if body[0] == '{':
             response = json.loads(body)
+            feedback = self.id + ' ' + self.json(response)
             if 'code' in response:
                 code = self.safe_string(response, 'code')
-                message = self.id + ' ' + self.json(response)
                 if code in self.exceptions:
                     ExceptionClass = self.exceptions[code]
-                    raise ExceptionClass(message)
+                    raise ExceptionClass(feedback)
                 elif code != '1000':
-                    raise ExchangeError(message)
+                    raise ExchangeError(feedback)
+            # special case for {"result":false,"message":"服务端忙碌"}(a "Busy Server" reply)
+            result = self.safe_value(response, 'result')
+            if result is not None:
+                if not result:
+                    message = self.safe_string(response, 'message')
+                    if message == u'服务端忙碌':
+                        raise ExchangeNotAvailable(feedback)
+                    else:
+                        raise ExchangeError(feedback)

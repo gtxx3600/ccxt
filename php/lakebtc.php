@@ -13,7 +13,7 @@ class lakebtc extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'lakebtc',
             'name' => 'LakeBTC',
-            'countries' => 'US',
+            'countries' => array ( 'US' ),
             'version' => 'api_v2',
             'has' => array (
                 'CORS' => true,
@@ -182,8 +182,8 @@ class lakebtc extends Exchange {
             'order' => null,
             'type' => null,
             'side' => null,
-            'price' => floatval ($trade['price']),
-            'amount' => floatval ($trade['amount']),
+            'price' => $this->safe_float($trade, 'price'),
+            'amount' => $this->safe_float($trade, 'amount'),
         );
     }
 
@@ -230,21 +230,21 @@ class lakebtc extends Exchange {
         } else {
             $this->check_required_credentials();
             $nonce = $this->nonce ();
-            if ($params)
-                $params = implode (',', $params);
-            else
-                $params = '';
+            $queryParams = '';
+            if (is_array ($params) && array_key_exists ('params', $params)) {
+                $queryParams = $params['params'].join ();
+            }
             $query = $this->urlencode (array (
                 'tonce' => $nonce,
                 'accesskey' => $this->apiKey,
                 'requestmethod' => strtolower ($method),
                 'id' => $nonce,
                 'method' => $path,
-                'params' => $params,
+                'params' => $queryParams,
             ));
             $body = $this->json (array (
                 'method' => $path,
-                'params' => $params,
+                'params' => $queryParams,
                 'id' => $nonce,
             ));
             $signature = $this->hmac ($this->encode ($query), $this->encode ($this->secret), 'sha1');

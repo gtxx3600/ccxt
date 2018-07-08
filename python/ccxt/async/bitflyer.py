@@ -14,7 +14,7 @@ class bitflyer (Exchange):
         return self.deep_extend(super(bitflyer, self).describe(), {
             'id': 'bitflyer',
             'name': 'bitFlyer',
-            'countries': 'JP',
+            'countries': ['JP'],
             'version': 'v1',
             'rateLimit': 1000,  # their nonce-timestamp is in seconds...
             'has': {
@@ -94,6 +94,13 @@ class bitflyer (Exchange):
         for p in range(0, len(markets)):
             market = markets[p]
             id = market['product_code']
+            spot = True
+            future = False
+            type = 'spot'
+            if 'alias' in market:
+                type = 'future'
+                future = True
+                spot = False
             currencies = id.split('_')
             base = None
             quote = None
@@ -114,6 +121,9 @@ class bitflyer (Exchange):
                 'symbol': symbol,
                 'base': base,
                 'quote': quote,
+                'type': type,
+                'spot': spot,
+                'future': future,
                 'info': market,
             })
         return result
@@ -151,16 +161,16 @@ class bitflyer (Exchange):
             'product_code': self.market_id(symbol),
         }, params))
         timestamp = self.parse8601(ticker['timestamp'])
-        last = float(ticker['ltp'])
+        last = self.safe_float(ticker, 'ltp')
         return {
             'symbol': symbol,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
             'high': None,
             'low': None,
-            'bid': float(ticker['best_bid']),
+            'bid': self.safe_float(ticker, 'best_bid'),
             'bidVolume': None,
-            'ask': float(ticker['best_ask']),
+            'ask': self.safe_float(ticker, 'best_ask'),
             'askVolume': None,
             'vwap': None,
             'open': None,
@@ -170,7 +180,7 @@ class bitflyer (Exchange):
             'change': None,
             'percentage': None,
             'average': None,
-            'baseVolume': float(ticker['volume_by_product']),
+            'baseVolume': self.safe_float(ticker, 'volume_by_product'),
             'quoteVolume': None,
             'info': ticker,
         }
@@ -276,6 +286,7 @@ class bitflyer (Exchange):
             'info': order,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
+            'lastTradeTimestamp': None,
             'status': status,
             'symbol': symbol,
             'type': type,
@@ -299,17 +310,21 @@ class bitflyer (Exchange):
         }
         response = await self.privateGetGetchildorders(self.extend(request, params))
         orders = self.parse_orders(response, market, since, limit)
-        if symbol:
+        if symbol is not None:
             orders = self.filter_by(orders, 'symbol', symbol)
         return orders
 
     async def fetch_open_orders(self, symbol=None, since=None, limit=100, params={}):
-        params['child_order_state'] = 'ACTIVE'
-        return self.fetch_orders(symbol, since, limit, params)
+        request = {
+            'child_order_state': 'ACTIVE',
+        }
+        return await self.fetch_orders(symbol, since, limit, self.extend(request, params))
 
     async def fetch_closed_orders(self, symbol=None, since=None, limit=100, params={}):
-        params['child_order_state'] = 'COMPLETED'
-        return self.fetch_orders(symbol, since, limit, params)
+        request = {
+            'child_order_state': 'COMPLETED',
+        }
+        return await self.fetch_orders(symbol, since, limit, self.extend(request, params))
 
     async def fetch_order(self, id, symbol=None, params={}):
         if symbol is None:
@@ -328,7 +343,7 @@ class bitflyer (Exchange):
         request = {
             'product_code': market['id'],
         }
-        if limit:
+        if limit is not None:
             request['count'] = limit
         response = await self.privateGetGetexecutions(self.extend(request, params))
         return self.parse_trades(response, market, since, limit)

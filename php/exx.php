@@ -13,9 +13,10 @@ class exx extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'exx',
             'name' => 'EXX',
-            'countries' => 'CN',
+            'countries' => array ( 'CN' ),
             'rateLimit' => 1000 / 10,
             'has' => array (
+                'fetchOrder' => true,
                 'fetchTickers' => true,
                 'fetchOpenOrders' => true,
             ),
@@ -80,6 +81,9 @@ class exx extends Exchange {
                     ),
                 ),
             ),
+            'commonCurrencies' => array (
+                'CAN' => 'Content and AD Network',
+            ),
         ));
     }
 
@@ -136,26 +140,26 @@ class exx extends Exchange {
         $symbol = $market['symbol'];
         $timestamp = intval ($ticker['date']);
         $ticker = $ticker['ticker'];
-        $last = floatval ($ticker['last']);
+        $last = $this->safe_float($ticker, 'last');
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
-            'high' => floatval ($ticker['high']),
-            'low' => floatval ($ticker['low']),
-            'bid' => floatval ($ticker['buy']),
+            'high' => $this->safe_float($ticker, 'high'),
+            'low' => $this->safe_float($ticker, 'low'),
+            'bid' => $this->safe_float($ticker, 'buy'),
             'bidVolume' => null,
-            'ask' => floatval ($ticker['sell']),
+            'ask' => $this->safe_float($ticker, 'sell'),
             'askVolume' => null,
             'vwap' => null,
             'open' => null,
             'close' => $last,
             'last' => $last,
             'previousClose' => null,
-            'change' => floatval ($ticker['riseRate']),
+            'change' => $this->safe_float($ticker, 'riseRate'),
             'percentage' => null,
             'average' => null,
-            'baseVolume' => floatval ($ticker['vol']),
+            'baseVolume' => $this->safe_float($ticker, 'vol'),
             'quoteVolume' => null,
             'info' => $ticker,
         );
@@ -201,8 +205,8 @@ class exx extends Exchange {
 
     public function parse_trade ($trade, $market = null) {
         $timestamp = $trade['date'] * 1000;
-        $price = floatval ($trade['price']);
-        $amount = floatval ($trade['amount']);
+        $price = $this->safe_float($trade, 'price');
+        $amount = $this->safe_float($trade, 'amount');
         $symbol = $market['symbol'];
         $cost = $this->cost_to_precision($symbol, $price * $amount);
         return array (
@@ -232,7 +236,7 @@ class exx extends Exchange {
 
     public function fetch_balance ($params = array ()) {
         $this->load_markets();
-        $balances = $this->privateGetBalance ($params);
+        $balances = $this->privateGetGetBalance ($params);
         $result = array ( 'info' => $balances );
         $balances = $balances['funds'];
         $currencies = is_array ($balances) ? array_keys ($balances) : array ();
@@ -253,7 +257,7 @@ class exx extends Exchange {
     public function parse_order ($order, $market = null) {
         $symbol = $market['symbol'];
         $timestamp = intval ($order['trade_date']);
-        $price = floatval ($order['price']);
+        $price = $this->safe_float($order, 'price');
         $cost = $this->safe_float($order, 'trade_money');
         $amount = $this->safe_float($order, 'total_amount');
         $filled = $this->safe_float($order, 'trade_amount', 0.0);
@@ -277,6 +281,7 @@ class exx extends Exchange {
             'id' => $this->safe_string($order, 'id'),
             'datetime' => $this->iso8601 ($timestamp),
             'timestamp' => $timestamp,
+            'lastTradeTimestamp' => null,
             'status' => 'open',
             'symbol' => $symbol,
             'type' => 'limit',
@@ -358,7 +363,7 @@ class exx extends Exchange {
                 'accesskey' => $this->apiKey,
                 'nonce' => $this->nonce (),
             ), $params)));
-            $signature = $this->hmac ($this->encode ($body), $this->encode ($this->secret), 'sha512');
+            $signature = $this->hmac ($this->encode ($query), $this->encode ($this->secret), 'sha512');
             $url .= '?' . $query . '&$signature=' . $signature;
         }
         return array ( 'url' => $url, 'method' => $method, 'body' => $body, 'headers' => $headers );

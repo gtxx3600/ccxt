@@ -13,7 +13,7 @@ class chilebit extends foxbit {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'chilebit',
             'name' => 'ChileBit',
-            'countries' => 'CL',
+            'countries' => array ( 'CL' ),
             'has' => array (
                 'CORS' => false,
             ),
@@ -25,6 +25,9 @@ class chilebit extends foxbit {
                 ),
                 'www' => 'https://chilebit.net',
                 'doc' => 'https://blinktrade.com/docs',
+            ),
+            'options' => array (
+                'brokerId' => '9', // https://blinktrade.com/docs/#brokers
             ),
         ));
     }

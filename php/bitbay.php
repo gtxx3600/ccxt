@@ -13,7 +13,7 @@ class bitbay extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'bitbay',
             'name' => 'BitBay',
-            'countries' => array ( 'PL', 'EU' ), // Poland
+            'countries' => array ( 'MT', 'EU' ), // Malta
             'rateLimit' => 1000,
             'has' => array (
                 'CORS' => true,
@@ -93,9 +93,9 @@ class bitbay extends Exchange {
                 'XRP/EUR' => array ( 'id' => 'XRPEUR', 'symbol' => 'XRP/EUR', 'base' => 'XRP', 'quote' => 'EUR', 'baseId' => 'XRP', 'quoteId' => 'EUR' ),
                 'XRP/PLN' => array ( 'id' => 'XRPPLN', 'symbol' => 'XRP/PLN', 'base' => 'XRP', 'quote' => 'PLN', 'baseId' => 'XRP', 'quoteId' => 'PLN' ),
                 'XRP/BTC' => array ( 'id' => 'XRPBTC', 'symbol' => 'XRP/BTC', 'base' => 'XRP', 'quote' => 'BTC', 'baseId' => 'XRP', 'quoteId' => 'BTC' ),
-                'XIN/USD' => array ( 'id' => 'XINUSD', 'symbol' => 'XIN/USD', 'base' => 'XIN', 'quote' => 'USD', 'baseId' => 'XIN', 'quoteId' => 'USD' ),
-                'XIN/EUR' => array ( 'id' => 'XINEUR', 'symbol' => 'XIN/EUR', 'base' => 'XIN', 'quote' => 'EUR', 'baseId' => 'XIN', 'quoteId' => 'EUR' ),
-                'XIN/PLN' => array ( 'id' => 'XINPLN', 'symbol' => 'XIN/PLN', 'base' => 'XIN', 'quote' => 'PLN', 'baseId' => 'XIN', 'quoteId' => 'PLN' ),
+                // 'XIN/USD' => array ( 'id' => 'XINUSD', 'symbol' => 'XIN/USD', 'base' => 'XIN', 'quote' => 'USD', 'baseId' => 'XIN', 'quoteId' => 'USD' ),
+                // 'XIN/EUR' => array ( 'id' => 'XINEUR', 'symbol' => 'XIN/EUR', 'base' => 'XIN', 'quote' => 'EUR', 'baseId' => 'XIN', 'quoteId' => 'EUR' ),
+                // 'XIN/PLN' => array ( 'id' => 'XINPLN', 'symbol' => 'XIN/PLN', 'base' => 'XIN', 'quote' => 'PLN', 'baseId' => 'XIN', 'quoteId' => 'PLN' ),
                 'XIN/BTC' => array ( 'id' => 'XINBTC', 'symbol' => 'XIN/BTC', 'base' => 'XIN', 'quote' => 'BTC', 'baseId' => 'XIN', 'quoteId' => 'BTC' ),
             ),
             'fees' => array (
@@ -304,7 +304,7 @@ class bitbay extends Exchange {
     }
 
     public function handle_errors ($httpCode, $reason, $url, $method, $headers, $body) {
-        if (gettype ($body) != 'string')
+        if (gettype ($body) !== 'string')
             return; // fallback to default error handler
         if (strlen ($body) < 2)
             return;

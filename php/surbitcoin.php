@@ -13,7 +13,7 @@ class surbitcoin extends foxbit {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'surbitcoin',
             'name' => 'SurBitcoin',
-            'countries' => 'VE',
+            'countries' => array ( 'VE' ),
             'has' => array (
                 'CORS' => false,
             ),
@@ -25,6 +25,9 @@ class surbitcoin extends foxbit {
                 ),
                 'www' => 'https://surbitcoin.com',
                 'doc' => 'https://blinktrade.com/docs',
+            ),
+            'options' => array (
+                'brokerId' => '1', // https://blinktrade.com/docs/#brokers
             ),
         ));
     }

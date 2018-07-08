@@ -13,7 +13,7 @@ class zaif extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'zaif',
             'name' => 'Zaif',
-            'countries' => 'JP',
+            'countries' => array ( 'JP' ),
             'rateLimit' => 2000,
             'version' => '1',
             'has' => array (
@@ -123,11 +123,11 @@ class zaif extends Exchange {
                 'precision' => $precision,
                 'limits' => array (
                     'amount' => array (
-                        'min' => floatval ($market['item_unit_min']),
+                        'min' => $this->safe_float($market, 'item_unit_min'),
                         'max' => null,
                     ),
                     'price' => array (
-                        'min' => floatval ($market['aux_unit_min']),
+                        'min' => $this->safe_float($market, 'aux_unit_min'),
                         'max' => null,
                     ),
                     'cost' => array (
@@ -271,6 +271,7 @@ class zaif extends Exchange {
             'id' => (string) $order['id'],
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
+            'lastTradeTimestamp' => null,
             'status' => 'open',
             'symbol' => $market['symbol'],
             'type' => 'limit',
@@ -304,7 +305,7 @@ class zaif extends Exchange {
             // 'is_token' => false,
             // 'is_token_both' => false,
         );
-        if ($symbol) {
+        if ($symbol !== null) {
             $market = $this->market ($symbol);
             $request['currency_pair'] = $market['id'];
         }
@@ -325,7 +326,7 @@ class zaif extends Exchange {
             // 'end' => 1503821051,
             // 'is_token' => false,
         );
-        if ($symbol) {
+        if ($symbol !== null) {
             $market = $this->market ($symbol);
             $request['currency_pair'] = $market['id'];
         }

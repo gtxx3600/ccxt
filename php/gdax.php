@@ -13,7 +13,7 @@ class gdax extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'gdax',
             'name' => 'GDAX',
-            'countries' => 'US',
+            'countries' => array ( 'US' ),
             'rateLimit' => 1000,
             'userAgent' => $this->userAgents['chrome'],
             'has' => array (
@@ -105,7 +105,7 @@ class gdax extends Exchange {
                     'tierBased' => true, // complicated tier system per coin
                     'percentage' => true,
                     'maker' => 0.0,
-                    'taker' => 0.25 / 100, // Fee is 0.25%, 0.3% for ETH/LTC pairs
+                    'taker' => 0.3 / 100, // tiered fee starts at 0.3%
                 ),
                 'funding' => array (
                     'tierBased' => false,
@@ -254,7 +254,7 @@ class gdax extends Exchange {
         if ($timestamp !== null)
             $iso8601 = $this->iso8601 ($timestamp);
         $symbol = null;
-        if (!$market) {
+        if ($market === null) {
             if (is_array ($trade) && array_key_exists ('product_id', $trade)) {
                 $marketId = $trade['product_id'];
                 if (is_array ($this->markets_by_id) && array_key_exists ($marketId, $this->markets_by_id))
@@ -265,7 +265,7 @@ class gdax extends Exchange {
             $symbol = $market['symbol'];
         $feeRate = null;
         $feeCurrency = null;
-        if ($market) {
+        if ($market !== null) {
             $feeCurrency = $market['quote'];
             if (is_array ($trade) && array_key_exists ('liquidity', $trade)) {
                 $rateType = ($trade['liquidity'] === 'T') ? 'taker' : 'maker';
@@ -375,7 +375,7 @@ class gdax extends Exchange {
     public function parse_order ($order, $market = null) {
         $timestamp = $this->parse8601 ($order['created_at']);
         $symbol = null;
-        if (!$market) {
+        if ($market === null) {
             if (is_array ($this->markets_by_id) && array_key_exists ($order['product_id'], $this->markets_by_id))
                 $market = $this->markets_by_id[$order['product_id']];
         }
@@ -404,6 +404,7 @@ class gdax extends Exchange {
             'info' => $order,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
+            'lastTradeTimestamp' => null,
             'status' => $status,
             'symbol' => $symbol,
             'type' => $order['type'],
@@ -431,7 +432,7 @@ class gdax extends Exchange {
             'status' => 'all',
         );
         $market = null;
-        if ($symbol) {
+        if ($symbol !== null) {
             $market = $this->market ($symbol);
             $request['product_id'] = $market['id'];
         }
@@ -443,7 +444,7 @@ class gdax extends Exchange {
         $this->load_markets();
         $request = array ();
         $market = null;
-        if ($symbol) {
+        if ($symbol !== null) {
             $market = $this->market ($symbol);
             $request['product_id'] = $market['id'];
         }
@@ -457,7 +458,7 @@ class gdax extends Exchange {
             'status' => 'done',
         );
         $market = null;
-        if ($symbol) {
+        if ($symbol !== null) {
             $market = $this->market ($symbol);
             $request['product_id'] = $market['id'];
         }
@@ -465,11 +466,11 @@ class gdax extends Exchange {
         return $this->parse_orders($response, $market, $since, $limit);
     }
 
-    public function create_order ($market, $type, $side, $amount, $price = null, $params = array ()) {
+    public function create_order ($symbol, $type, $side, $amount, $price = null, $params = array ()) {
         $this->load_markets();
         // $oid = (string) $this->nonce ();
         $order = array (
-            'product_id' => $this->market_id($market),
+            'product_id' => $this->market_id($symbol),
             'side' => $side,
             'size' => $amount,
             'type' => $type,
@@ -477,15 +478,30 @@ class gdax extends Exchange {
         if ($type === 'limit')
             $order['price'] = $price;
         $response = $this->privatePostOrders (array_merge ($order, $params));
-        return array (
-            'info' => $response,
-            'id' => $response['id'],
-        );
+        return $this->parse_order($response);
     }
 
     public function cancel_order ($id, $symbol = null, $params = array ()) {
         $this->load_markets();
         return $this->privateDeleteOrdersId (array ( 'id' => $id ));
+    }
+
+    public function fee_to_precision ($currency, $fee) {
+        $cost = floatval ($fee);
+        return sprintf ('%.' . $this->currencies[$currency]['precision'] . 'f', $cost);
+    }
+
+    public function calculate_fee ($symbol, $type, $side, $amount, $price, $takerOrMaker = 'taker', $params = array ()) {
+        $market = $this->markets[$symbol];
+        $rate = $market[$takerOrMaker];
+        $cost = $amount * $price;
+        $currency = $market['quote'];
+        return array (
+            'type' => $takerOrMaker,
+            'currency' => $currency,
+            'rate' => $rate,
+            'cost' => floatval ($this->fee_to_precision($currency, $rate * $cost)),
+        );
     }
 
     public function get_payment_methods () {

@@ -13,7 +13,7 @@ class urdubit extends foxbit {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'urdubit',
             'name' => 'UrduBit',
-            'countries' => 'PK',
+            'countries' => array ( 'PK' ),
             'has' => array (
                 'CORS' => false,
             ),
@@ -25,6 +25,9 @@ class urdubit extends foxbit {
                 ),
                 'www' => 'https://urdubit.com',
                 'doc' => 'https://blinktrade.com/docs',
+            ),
+            'options' => array (
+                'brokerId' => '8', // https://blinktrade.com/docs/#brokers
             ),
         ));
     }

@@ -13,7 +13,7 @@ class bitflyer extends Exchange {
         return array_replace_recursive (parent::describe (), array (
             'id' => 'bitflyer',
             'name' => 'bitFlyer',
-            'countries' => 'JP',
+            'countries' => array ( 'JP' ),
             'version' => 'v1',
             'rateLimit' => 1000, // their nonce-timestamp is in seconds...
             'has' => array (
@@ -94,6 +94,14 @@ class bitflyer extends Exchange {
         for ($p = 0; $p < count ($markets); $p++) {
             $market = $markets[$p];
             $id = $market['product_code'];
+            $spot = true;
+            $future = false;
+            $type = 'spot';
+            if (is_array ($market) && array_key_exists ('alias', $market)) {
+                $type = 'future';
+                $future = true;
+                $spot = false;
+            }
             $currencies = explode ('_', $id);
             $base = null;
             $quote = null;
@@ -115,6 +123,9 @@ class bitflyer extends Exchange {
                 'symbol' => $symbol,
                 'base' => $base,
                 'quote' => $quote,
+                'type' => $type,
+                'spot' => $spot,
+                'future' => $future,
                 'info' => $market,
             );
         }
@@ -159,16 +170,16 @@ class bitflyer extends Exchange {
             'product_code' => $this->market_id($symbol),
         ), $params));
         $timestamp = $this->parse8601 ($ticker['timestamp']);
-        $last = floatval ($ticker['ltp']);
+        $last = $this->safe_float($ticker, 'ltp');
         return array (
             'symbol' => $symbol,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
             'high' => null,
             'low' => null,
-            'bid' => floatval ($ticker['best_bid']),
+            'bid' => $this->safe_float($ticker, 'best_bid'),
             'bidVolume' => null,
-            'ask' => floatval ($ticker['best_ask']),
+            'ask' => $this->safe_float($ticker, 'best_ask'),
             'askVolume' => null,
             'vwap' => null,
             'open' => null,
@@ -178,7 +189,7 @@ class bitflyer extends Exchange {
             'change' => null,
             'percentage' => null,
             'average' => null,
-            'baseVolume' => floatval ($ticker['volume_by_product']),
+            'baseVolume' => $this->safe_float($ticker, 'volume_by_product'),
             'quoteVolume' => null,
             'info' => $ticker,
         );
@@ -294,6 +305,7 @@ class bitflyer extends Exchange {
             'info' => $order,
             'timestamp' => $timestamp,
             'datetime' => $this->iso8601 ($timestamp),
+            'lastTradeTimestamp' => null,
             'status' => $status,
             'symbol' => $symbol,
             'type' => $type,
@@ -318,19 +330,23 @@ class bitflyer extends Exchange {
         );
         $response = $this->privateGetGetchildorders (array_merge ($request, $params));
         $orders = $this->parse_orders($response, $market, $since, $limit);
-        if ($symbol)
+        if ($symbol !== null)
             $orders = $this->filter_by($orders, 'symbol', $symbol);
         return $orders;
     }
 
     public function fetch_open_orders ($symbol = null, $since = null, $limit = 100, $params = array ()) {
-        $params['child_order_state'] = 'ACTIVE';
-        return $this->fetch_orders($symbol, $since, $limit, $params);
+        $request = array (
+            'child_order_state' => 'ACTIVE',
+        );
+        return $this->fetch_orders($symbol, $since, $limit, array_merge ($request, $params));
     }
 
     public function fetch_closed_orders ($symbol = null, $since = null, $limit = 100, $params = array ()) {
-        $params['child_order_state'] = 'COMPLETED';
-        return $this->fetch_orders($symbol, $since, $limit, $params);
+        $request = array (
+            'child_order_state' => 'COMPLETED',
+        );
+        return $this->fetch_orders($symbol, $since, $limit, array_merge ($request, $params));
     }
 
     public function fetch_order ($id, $symbol = null, $params = array ()) {
@@ -351,7 +367,7 @@ class bitflyer extends Exchange {
         $request = array (
             'product_code' => $market['id'],
         );
-        if ($limit)
+        if ($limit !== null)
             $request['count'] = $limit;
         $response = $this->privateGetGetexecutions (array_merge ($request, $params));
         return $this->parse_trades($response, $market, $since, $limit);
